@@ -1,0 +1,83 @@
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.naive_bayes import MultinomialNB
+
+# Load the dataset
+raw_mail_data = pd.read_csv('/content/spam.csv', encoding='latin')
+
+# Check for missing values
+raw_mail_data.isnull().sum()
+
+# Replace missing values with empty strings
+mail_data = raw_mail_data.where((pd.notnull(raw_mail_data)), '')
+
+# Rename columns for clarity
+mail_data = mail_data.rename(columns={'v1': 'Category', 'v2': 'Message'})
+
+# Convert spam to 0 and ham to 1
+mail_data.loc[mail_data['Category'] == 'spam', 'Category'] = 0
+mail_data.loc[mail_data['Category'] == 'ham', 'Category'] = 1
+
+# Separate the data into features and labels
+X = mail_data['Message']
+Y = mail_data['Category']
+
+# Split the data into training and testing sets
+X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=3)
+
+# Feature extraction using TF-IDF
+feature_extraction = TfidfVectorizer(min_df=1, stop_words='english', lowercase=True)
+X_train_features = feature_extraction.fit_transform(X_train)
+X_test_features = feature_extraction.transform(X_test)
+
+# Convert labels to integers
+Y_train = Y_train.astype('int')
+Y_test = Y_test.astype('int')
+
+# Train a Logistic Regression model
+model = LogisticRegression()
+model.fit(X_train_features, Y_train)
+
+# Evaluate the model on the training data
+prediction_on_training_data = model.predict(X_train_features)
+accuracy_on_training_data = accuracy_score(Y_train, prediction_on_training_data)
+print('Accuracy on training data:', accuracy_on_training_data)
+
+# Evaluate the model on the test data
+prediction_on_test_data = model.predict(X_test_features)
+accuracy_on_test_data = accuracy_score(Y_test, prediction_on_test_data)
+print('Accuracy on test data:', accuracy_on_test_data)
+
+# Example of a Naive Bayes model with CountVectorizer
+input_mail = ["I've been searching for the right words to thank you for this breather. I promise I won't take your help for granted and will fulfill my promise."]
+training_data = [
+    "I've been searching for the right words to thank you for this breather. I promise I won't take your help for granted and will fulfill my promise.",
+    "Got a free gift now! Click here.",
+    "Congratulations, you've won a lottery!",
+    "Invest in this amazing opportunity today.",
+    "Meeting postponed to tomorrow."
+]
+labels = [0, 1, 1, 1, 0]
+
+# Feature extraction using CountVectorizer
+feature_extraction = CountVectorizer()
+input_data_features = feature_extraction.fit_transform(training_data)
+
+# Train a Naive Bayes model
+model = MultinomialNB()
+model.fit(input_data_features, labels)
+
+# Predict on new input data
+input_data_features = feature_extraction.transform(input_mail)
+prediction = model.predict(input_data_features)
+
+# Print the result
+if prediction[0] == 0:
+    print('Ham mail')
+else:
+    print('Spam mail')
